@@ -63,3 +63,8 @@ This logging framework uses explicit ANSI escape blocks to display structural er
 #### File 3: src/am_npu_inference/src/npu_quant_engine.cpp
 This class manages the low-latency visual inspection pipeline on your edge processor. It loads an INT8-quantized anomaly model via TensorRT to predict structural surface defects during production.
 
+#### File 4: src/am_realtime_core/src/preempt_rt_loop.cpp
+
+This script implements your high-reliability control loop. It locks memory pages using mlockall to eliminate memory swap delays, boosts process priority to SCHED_FIFO (99) to override standard OS tasks, and updates toolpath trajectories in real time based on defect inputs from the NPU.
+
+
