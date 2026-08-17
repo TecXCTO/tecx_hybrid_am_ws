@@ -67,4 +67,5 @@ This class manages the low-latency visual inspection pipeline on your edge proce
 
 This script implements your high-reliability control loop. It locks memory pages using mlockall to eliminate memory swap delays, boosts process priority to SCHED_FIFO (99) to override standard OS tasks, and updates toolpath trajectories in real time based on defect inputs from the NPU.
 
-
+### Part 3: Compile, Verify Real-Time Performance, and Deploy
+Execute these steps in your Linux terminal to build your repository, verify that your kernel is properly configured for real-time task isolation, and push your final production-ready code live.
