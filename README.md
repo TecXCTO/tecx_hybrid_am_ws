@@ -56,4 +56,6 @@ hybrid_am_ws/
 ### Part 2: Complete Package Source Files
 #### File 1: src/am_machine_description/mujoco/am_scene.xmlThe simulation scene maps out a 6-DOF industrial robotic system equipped with position servos and a material deposition tip.
 
-### 
+#### File 2: src/am_rtf_logger/include/print_rtf.h
+This logging framework uses explicit ANSI escape blocks to display structural error notifications across real-time diagnostic consoles.
+
