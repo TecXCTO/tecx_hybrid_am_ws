@@ -54,8 +54,12 @@ hybrid_am_ws/
 │       └── src/print_rtf.cpp
 ```
 ### Part 2: Complete Package Source Files
-#### File 1: src/am_machine_description/mujoco/am_scene.xmlThe simulation scene maps out a 6-DOF industrial robotic system equipped with position servos and a material deposition tip.
+#### File 1: src/am_machine_description/mujoco/am_scene.xml
+The simulation scene maps out a 6-DOF industrial robotic system equipped with position servos and a material deposition tip.
 
 #### File 2: src/am_rtf_logger/include/print_rtf.h
 This logging framework uses explicit ANSI escape blocks to display structural error notifications across real-time diagnostic consoles.
+
+#### File 3: src/am_npu_inference/src/npu_quant_engine.cpp
+This class manages the low-latency visual inspection pipeline on your edge processor. It loads an INT8-quantized anomaly model via TensorRT to predict structural surface defects during production.
 
