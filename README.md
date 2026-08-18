@@ -69,3 +69,39 @@ This script implements your high-reliability control loop. It locks memory pages
 
 ### Part 3: Compile, Verify Real-Time Performance, and Deploy
 Execute these steps in your Linux terminal to build your repository, verify that your kernel is properly configured for real-time task isolation, and push your final production-ready code live.
+
+## 2. 
+To achieve sub-millisecond synchronization and guarantee deterministic tracking performance for aerospace and critical components, we will add Real-Time Shared Memory (POSIX Shared Memory / shm_open) to completely eliminate IPC network latency between MuJoCo and ROS 2. We will also implement a cyclictest Profiling Script to measure and document your microsecond-level kernel scheduling latency.Here is the step-by-step process and the updated codebase to complete your production repository workspace.
+
+### Part 1: Update Your Custom GitHub Repository Structural Layout
+Run these commands in your workspace terminal to adjust your project scaffolding for the Shared Memory interface and the profiling test script:
+```
+# 1. Verify workspace tracking layout
+git status
+
+# 2. Generate a dedicated profiling subfolder for kernel benchmarking
+mkdir -p scripts/profiling
+touch scripts/profiling/run_cyclictest.sh
+```
+Your updated repository tree will match this structural layout:
+```
+hybrid_am_ws/
+├── .gitignore
+├── scripts/
+│   └── profiling/
+│       └── run_cyclictest.sh         <-- Automated Kernel Latency Profiler Script
+├── src/
+│   ├── am_machine_description/
+│   │   └── mujoco/am_scene.xml
+│   ├── am_realtime_core/
+│   │   ├── src/preempt_rt_loop.cpp   <-- Updated 1kHz Loop with POSIX Shared Memory
+│   │   └── CMakeLists.txt            <-- Linked with -lrt (Realtime Extensions)
+│   ├── am_npu_inference/
+│   │   └── src/npu_quant_engine.cpp
+│   └── am_rtf_logger/
+│       └── include/print_rtf.h
+```
+### Part 2: Complete Real-Time Sync & Latency Profiling Source Files
+#### File 1: src/am_realtime_core/src/preempt_rt_loop.cpp
+We rewrite the preempt_rt_loop.cpp file to open a high-reliability POSIX shared memory block (/am_mujoco_shm). The 1kHz execution loop now reads the simulated robot states and updates actuator references directly via physical pointer operations in RAM, avoiding the latency of network sockets.
+
