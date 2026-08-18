@@ -111,7 +111,7 @@ To support low-latency memory pointer calls across process blocks, we update you
 #### File 3: scripts/profiling/run_cyclictest.sh
 This shell script automates system profiling under heavy processing loads. It locks thread assignments to designated processor cores (-t1 -a 1) and isolates maximum kernel delay steps down to microsecond intervals to validate hardware readiness for aerospace-grade manufacturing.
 
-### Part 3: Deploy, Profile, and Push Your Repository LiveExecute these terminal commands to compile your shared memory system, profile your kernel's scheduling latency, and push your changes to GitHub.
+## Part 3: Deploy, Profile, and Push Your Repository LiveExecute these terminal commands to compile your shared memory system, profile your kernel's scheduling latency, and push your changes to GitHub.
 ### Core Architecture Milestones Achieved
 This repository is now an expert-level, deployment-ready advanced manufacturing codebase:
 
@@ -121,3 +121,44 @@ This repository is now an expert-level, deployment-ready advanced manufacturing 
 4. Verification Tools (run_cyclictest.sh): An automated tool to measure kernel scheduling latency and guarantee microsecond-level determinism.
 
 ## 3 
+To bring your advanced manufacturing machine to physical deployment readiness, we will now build the Python-MuJoCo Shared Memory Interface Script (providing the simulation twin with high-frequency, zero-copy read/write capabilities over the shared RAM segment) and configure the GRUB CPU Core Isolation Profile (isolcpus) to shield your real-time threads from any Linux operating system overhead.Here is the complete process and final source files to finalize your custom repository.
+
+### Part 1: Update Your Custom GitHub Repository Scaffolding
+Run these terminal commands within your project workspace to create the final simulation bridge and infrastructure configuration scripts:
+```
+# 1. Verify tracking layout status
+git status
+
+# 2. Generate directories for the python bridge and system configurations
+mkdir -p src/am_machine_description/mujoco/scripts
+mkdir -p scripts/system_config
+
+touch src/am_machine_description/mujoco/scripts/mujoco_shm_bridge.py
+touch scripts/system_config/setup_grub_isolation.sh
+```
+The completed, production-ready repository tree structure now looks like this:
+```
+hybrid_am_ws/
+├── .gitignore
+├── scripts/
+│   ├── profiling/
+│   │   └── run_cyclictest.sh
+│   └── system_config/
+│       └── setup_grub_isolation.sh   <-- GRUB CPU Core Isolation Provisioner Script
+├── src/
+│   ├── am_machine_description/
+│   │   └── mujoco/
+│   │       ├── am_scene.xml
+│   │       └── scripts/
+│   │           └── mujoco_shm_bridge.py <-- Zero-Copy Python-MuJoCo HIL Simulation Bridge
+│   ├── am_realtime_core/
+│   │   ├── src/preempt_rt_loop.cpp
+│   │   └── CMakeLists.txt
+│   ├── am_npu_inference/
+│   │   └── src/npu_quant_engine.cpp
+│   └── am_rtf_logger/
+│       └── include/print_rtf.h
+```
+### Part 2: Complete HIL Bridge & System Isolation Source Files
+#### File 1: src/am_machine_description/mujoco/scripts/mujoco_shm_bridge.pyThis script uses standard Python mmap bindings to connect directly to the active POSIX shared memory block (/am_mujoco_shm). Running at a native 1kHz cycle rate inside the MuJoCo engine, it captures simulated sensor feeds, writes them into the shared RAM block, and instantaneously reads back target trajectory updates from your real-time control loops.
+
