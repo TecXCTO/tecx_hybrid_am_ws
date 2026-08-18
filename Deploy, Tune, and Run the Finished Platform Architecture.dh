@@ -1,0 +1,22 @@
+# Deploy, Tune, and Run the Finished Platform ArchitectureFollow this operational pipeline sequence to isolate your system cores, run the sub-millisecond hardware-in-the-loop (HIL) simulation twin, and back up the final system configurations.
+
+
+  # 1. Provision hard real-time kernel task core isolation constraints
+chmod +x scripts/system_config/setup_grub_isolation.sh
+sudo ./scripts/system_config/setup_grub_isolation.sh
+
+# 2. Reboot your host operating system platform to load the updated kernel parameters
+sudo reboot
+
+# 3. After boot-up, launch the zero-copy Python-MuJoCo simulation twin loop
+python3 src/am_machine_description/mujoco/scripts/mujoco_shm_bridge.py
+
+# 4. Open a secondary terminal to launch your real-time control system pinned to isolated CPU core 2
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+sudo taskset -c 2 ./build/am_realtime_core/am_preempt_rt_core
+
+# 5. Commit and backup your final real-time workspace to your remote repository
+git add scripts/system_config/setup_grub_isolation.sh src/am_machine_description/mujoco/scripts/mujoco_shm_bridge.py
+git commit -m "Deploy production HIL zero-copy Python-MuJoCo interface bridge and GRUB CPU isolation scripts"
+git push origin main
