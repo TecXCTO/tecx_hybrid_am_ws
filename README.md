@@ -108,3 +108,6 @@ We rewrite the preempt_rt_loop.cpp file to open a high-reliability POSIX shared 
 #### File 2: src/am_realtime_core/CMakeLists.txt
 To support low-latency memory pointer calls across process blocks, we update your compilation script to link against the standard Linux real-time extensions library (rt).
 
+#### File 3: scripts/profiling/run_cyclictest.sh
+This shell script automates system profiling under heavy processing loads. It locks thread assignments to designated processor cores (-t1 -a 1) and isolates maximum kernel delay steps down to microsecond intervals to validate hardware readiness for aerospace-grade manufacturing.
+
