@@ -162,3 +162,6 @@ hybrid_am_ws/
 ### Part 2: Complete HIL Bridge & System Isolation Source Files
 #### File 1: src/am_machine_description/mujoco/scripts/mujoco_shm_bridge.pyThis script uses standard Python mmap bindings to connect directly to the active POSIX shared memory block (/am_mujoco_shm). Running at a native 1kHz cycle rate inside the MuJoCo engine, it captures simulated sensor feeds, writes them into the shared RAM block, and instantaneously reads back target trajectory updates from your real-time control loops.
 
+#### File 2: scripts/system_config/setup_grub_isolation.sh
+To eliminate scheduling latency spikes, this script updates your Linux kernel boot profile. It modifies GRUB parameters to completely isolate CPU cores 2 and 3 (isolcpus=2,3 rcu_nocbs=2,3 nohz_full=2,3), shielding them from kernel background interruptions and reserving them exclusively for your real-time control threads.
+
