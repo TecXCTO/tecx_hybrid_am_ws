@@ -111,3 +111,4 @@ To support low-latency memory pointer calls across process blocks, we update you
 #### File 3: scripts/profiling/run_cyclictest.sh
 This shell script automates system profiling under heavy processing loads. It locks thread assignments to designated processor cores (-t1 -a 1) and isolates maximum kernel delay steps down to microsecond intervals to validate hardware readiness for aerospace-grade manufacturing.
 
+### Part 3: Deploy, Profile, and Push Your Repository LiveExecute these terminal commands to compile your shared memory system, profile your kernel's scheduling latency, and push your changes to GitHub.
