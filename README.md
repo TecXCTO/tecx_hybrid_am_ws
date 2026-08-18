@@ -105,3 +105,6 @@ hybrid_am_ws/
 #### File 1: src/am_realtime_core/src/preempt_rt_loop.cpp
 We rewrite the preempt_rt_loop.cpp file to open a high-reliability POSIX shared memory block (/am_mujoco_shm). The 1kHz execution loop now reads the simulated robot states and updates actuator references directly via physical pointer operations in RAM, avoiding the latency of network sockets.
 
+#### File 2: src/am_realtime_core/CMakeLists.txt
+To support low-latency memory pointer calls across process blocks, we update your compilation script to link against the standard Linux real-time extensions library (rt).
+
