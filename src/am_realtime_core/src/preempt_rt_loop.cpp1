@@ -1,0 +1,146 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <chrono>
+#include <thread>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sched.h>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
+#include "print_rtf.h"
+#include "../../am_npu_inference/src/npu_quant_engine.cpp"
+
+#define CONTROL_PERIOD_NS 1000000 // Strict 1 millisecond execution frequency limit (1kHz)
+#define SHM_NAME "/am_mujoco_shm"
+
+// Structure mapped across shared memory to allow zero-copy message transfers
+struct AmSharedMemoryData {
+    double joint_positions[6];
+    double joint_velocities[6];
+    double joint_commands[6];
+    float defect_sensor_stream[256];
+    bool exception_trigger;
+};
+
+class PreemptRtControlEngine : public rclcpp::Node {
+public:
+    PreemptRtControlEngine() : Node("am_preempt_rt_core") {
+        command_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/spatial_arm_joint_commands", 10);
+        
+        defect_predictor_ = std::make_unique<NpuDefectPredictor>();
+        defect_predictor_->initialize("../am_npu_inference/models/defect_quant_int8.engine");
+        
+        // 1. Initialize and link the low-latency POSIX Shared Memory mapping
+        init_shared_memory();
+        
+        RtfLogger::log_info("RT_CORE", "PREEMPT_RT Real-Time processing node active with Shared Memory linkage.");
+    }
+
+    ~PreemptRtControlEngine() {
+        // Unmap memory allocations upon shutdown cleanly
+        munmap(shm_ptr_, sizeof(AmSharedMemoryData));
+        shm_unlink(SHM_NAME);
+    }
+
+    void lock_and_execute_rt_loop() {
+        struct sched_param param;
+        param.sched_priority = 99; // Maximum real-time priority (SCHED_FIFO)
+
+        if (sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
+            RtfLogger::log_warn("RT_CORE", "Failed to set SCHED_FIFO scheduling priority. Run executable with sudo privileges!");
+            return;
+        }
+
+        if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+            RtfLogger::log_critical("RT_CORE", "mlockall execution crashed! Hard memory constraints unfulfilled.");
+            return;
+        }
+
+        struct timespec next_wake;
+        clock_gettime(CLOCK_MONOTONIC, &next_wake);
+        auto command_msg = std_msgs::msg::Float64MultiArray();
+        command_msg.data.resize(6, 0.0);
+
+        while (rclcpp::ok()) {
+            next_wake.tv_nsec += CONTROL_PERIOD_NS;
+            if (next_wake.tv_nsec >= 1000000000) {
+                next_wake.tv_sec += 1;
+                next_wake.tv_nsec -= 1000000000;
+            }
+
+            // 2. Fetch sensor streams directly from the zero-copy shared memory pointer
+            std::vector<float> current_sensor_frame(256);
+            std::copy(shm_ptr_->defect_sensor_stream, shm_ptr_->defect_sensor_stream + 256, current_sensor_frame.begin());
+
+            // 3. Process data through the NPU core matrix
+            float defect_probability = defect_predictor_->run_realtime_inspection(current_sensor_frame);
+
+            double adaptive_compensation_factor = 0.0;
+            if (defect_probability > 0.70f) {
+                RtfLogger::log_warn("RT_CORE", "Structural defect detected by NPU! Adapting printhead trajectory paths.");
+                adaptive_compensation_factor = 0.004; // Micro-step trajectory adaptation shift
+            }
+
+            // Compute trajectories for the 6 spatial axes
+            double time_stamp = this->now().seconds();
+            command_msg.data[0] = 0.6 * sin(time_stamp * 0.4) + adaptive_compensation_factor;
+            command_msg.data[1] = 0.3 * cos(time_stamp * 0.4);
+            command_msg.data[2] = 0.2 * sin(time_stamp * 0.8);
+            command_msg.data[3] = 0.0;
+            command_msg.data[4] = 0.0;
+            command_msg.data[5] = time_stamp * 0.05;
+
+            // 4. Update memory locations directly for zero-latency MuJoCo execution
+            for(int i=0; i<6; ++i) {
+                shm_ptr_->joint_commands[i] = command_msg.data[i];
+            }
+
+            command_pub_->publish(command_msg);
+
+            // Enforce hard real-time loop synchronization
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_wake, NULL);
+        }
+    }
+
+private:
+    void init_shared_memory() {
+        // Open the virtual layout descriptor
+        shm_fd_ = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+        if (shm_fd_ == -1) {
+            RtfLogger::log_critical("RT_CORE", "Shared memory descriptor allocation failed.");
+            exit(EXIT_FAILURE);
+        }
+
+        // Set the size of the shared memory block to match our structural payload requirements
+        if (ftruncate(shm_fd_, sizeof(AmSharedMemoryData)) == -1) {
+            RtfLogger::log_critical("RT_CORE", "Failed to configure shared memory payload allocation boundaries.");
+            exit(EXIT_FAILURE);
+        }
+
+        // Map the shared memory region into the process's address space
+        shm_ptr_ = (AmSharedMemoryData*)mmap(NULL, sizeof(AmSharedMemoryData), 
+                                             PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd_, 0);
+        if (shm_ptr_ == MAP_FAILED) {
+            RtfLogger::log_critical("RT_CORE", "Failed to map shared memory virtual addresses into process space.");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr command_pub_;
+    std::unique_ptr<NpuDefectPredictor> defect_predictor_;
+    int shm_fd_;
+    AmSharedMemoryData* shm_ptr_;
+};
+
+int main(int argc, char **argv) {
+    rclcpp::init(argc, argv);
+    auto rt_node = std::make_shared<PreemptRtControlEngine>();
+    std::thread rt_execution_thread(&PreemptRtControlEngine::lock_and_execute_rt_loop, rt_node);
+    
+    rclcpp::spin(rt_node);
+    rt_execution_thread.join();
+    rclcpp::shutdown();
+    return 0;
+}
