@@ -165,3 +165,5 @@ hybrid_am_ws/
 #### File 2: scripts/system_config/setup_grub_isolation.sh
 To eliminate scheduling latency spikes, this script updates your Linux kernel boot profile. It modifies GRUB parameters to completely isolate CPU cores 2 and 3 (isolcpus=2,3 rcu_nocbs=2,3 nohz_full=2,3), shielding them from kernel background interruptions and reserving them exclusively for your real-time control threads.
 
+### Part 3: Deploy, Tune, and Run the Finished Platform Architecture
+Follow this operational pipeline sequence to isolate your system cores, run the sub-millisecond hardware-in-the-loop (HIL) simulation twin, and back up the final system configurations.
